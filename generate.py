@@ -101,8 +101,8 @@ class CrosswordCreator():
          constraints; in this case, the length of the word.)
         """
 
-        for variable in self.domains:
-            for word in self.domains[variable]:
+        for variable in self.domains.copy():
+            for word in self.domains[variable].copy():
                 if variable.length != len(word):
                     self.domains[variable].remove(word)
 
@@ -124,7 +124,7 @@ class CrosswordCreator():
         if overlap is None:
             return False
 
-        for x_word in self.domains[x]:
+        for x_word in self.domains[x].copy():
             # check if a word in y domain can match the overlap
             if not any(y_word[overlap[1]] == x_word[overlap[0]] for y_word in self.domains[y]):
                 self.domains[x].remove(x_word)
@@ -141,10 +141,10 @@ class CrosswordCreator():
         Return True if arc consistency is enforced and no domains are empty;
         return False if one or more domains end up empty.
         """
-        queue = arcs.copy() if arcs else self.crossword.overlaps.copy()
+        queue = arcs.copy() if arcs else list(self.crossword.overlaps.keys())
 
         while len(queue) > 0:
-            (x, y) = queue.pop(0)
+            x, y = queue.pop()
             if self.revise(x, y):
                 if len(self.domains[x]) == 0:
                     return None
@@ -157,9 +157,8 @@ class CrosswordCreator():
         Return True if `assignment` is complete (i.e., assigns a value to each
         crossword variable); return False otherwise.
         """
-
-        for variable in assignment:
-            if assignment[variable] is None:
+        for variable in self.crossword.variables:
+            if variable not in assignment:
                 return False
 
         return True
@@ -181,6 +180,8 @@ class CrosswordCreator():
 
             # check if overlaps are false
             for neighbor in self.crossword.neighbors(variable):
+                if assignment[neighbor] is None:
+                    continue
                 if self.crossword.overlaps[variable, neighbor]:
                     overlap = self.crossword.overlaps[variable, neighbor]
                     if assignment[variable][overlap[0]] != assignment[neighbor][overlap[1]]:
@@ -254,7 +255,7 @@ class CrosswordCreator():
                 result = self.backtrack(assignment)
                 if result is not None:
                     return result
-            assignment[var] = None
+            del assignment[var]
 
         return None
 
