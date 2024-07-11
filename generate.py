@@ -242,6 +242,7 @@ class CrosswordCreator():
         for val in self.order_domain_values(var, assignment):
             assignment[var] = val
             if self.consistent(assignment):
+                self.ac3(arcs=[(other, var) for other in self.crossword.neighbors(var)])
                 result = self.backtrack(assignment)
                 if result is not None:
                     return result
