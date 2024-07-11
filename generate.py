@@ -176,6 +176,7 @@ class CrosswordCreator():
             word = assignment[variable]
             if word in used_words or len(word) != variable.length:
                 return False
+            used_words.append(word)
 
             # check if overlaps are false
             for neighbor in self.crossword.neighbors(variable):
@@ -192,7 +193,21 @@ class CrosswordCreator():
         The first value in the list, for example, should be the one
         that rules out the fewest values among the neighbors of `var`.
         """
-        raise NotImplementedError
+        ruled_out = {x: 0 for x in self.domains[var]}
+
+        for word in self.domains[var]:
+            for neighbor in self.crossword.neighbors(var):
+                if assignment[neighbor] is not None:
+                    continue
+
+                overlap = self.crossword.overlaps[var, neighbor]
+                if overlap is None:
+                    continue
+                for neighbor_word in self.domains[neighbor]:
+                    if word[overlap[0]] != neighbor_word[overlap[1]]:
+                        ruled_out[word] += 1
+
+        return sorted(ruled_out.keys(), key=ruled_out.get)
 
     def select_unassigned_variable(self, assignment):
         """
@@ -217,7 +232,6 @@ class CrosswordCreator():
 
 
 def main():
-
     # Check usage
     if len(sys.argv) not in [3, 4]:
         sys.exit("Usage: python generate.py structure words [output]")
