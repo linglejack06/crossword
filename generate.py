@@ -141,6 +141,8 @@ class CrosswordCreator():
         Return True if arc consistency is enforced and no domains are empty;
         return False if one or more domains end up empty.
         """
+        if arcs is not None and len(arcs) == 0:
+            return True
         queue = arcs.copy() if arcs else list(self.crossword.overlaps.keys())
 
         while len(queue) > 0:
@@ -180,7 +182,7 @@ class CrosswordCreator():
 
             # check if overlaps are false
             for neighbor in self.crossword.neighbors(variable):
-                if assignment[neighbor] is None:
+                if neighbor not in assignment:
                     continue
                 if self.crossword.overlaps[variable, neighbor]:
                     overlap = self.crossword.overlaps[variable, neighbor]
@@ -195,21 +197,18 @@ class CrosswordCreator():
         The first value in the list, for example, should be the one
         that rules out the fewest values among the neighbors of `var`.
         """
-        ruled_out = {x: 0 for x in self.domains[var]}
+        ruled_out = {val: 0 for val in self.domains[var]}
 
-        for word in self.domains[var]:
+        for word in self.domains[var].copy():
             for neighbor in self.crossword.neighbors(var):
-                if assignment[neighbor] is not None:
-                    continue
-
                 overlap = self.crossword.overlaps[var, neighbor]
                 if overlap is None:
                     continue
-                for neighbor_word in self.domains[neighbor]:
+                for neighbor_word in self.domains[neighbor].copy():
                     if word[overlap[0]] != neighbor_word[overlap[1]]:
                         ruled_out[word] += 1
 
-        return sorted(ruled_out.keys(), key=ruled_out.get)
+        return sorted([x for x in ruled_out], key=lambda x: ruled_out[x])
 
     def select_unassigned_variable(self, assignment):
         """
@@ -219,21 +218,12 @@ class CrosswordCreator():
         degree. If there is a tie, any of the tied variables are acceptable
         return values.
         """
-        # find assigned variables to subtract from ( don't consider )
-        assigned_variables = filter(lambda var: assignment[var] is not None, assignment)
 
         # find minimum amount of words left
-        values = {x: len(self.domains[x]) for x in self.crossword.variables - assigned_variables}
-        min_value = min(values)
-        min_values = filter(lambda var: values[var] == min_value, values)
+        values = {x: len(self.domains[x]) for x in self.crossword.variables - assignment.keys()}
 
-        # sort by highest degree of neighbors if multiple minimums
-        if len(min_values) > 1:
-            degree_values = {x: len(self.crossword.neighbors(x)) for x in min_values}
-            max_value = max(degree_values)
-            return max_value
-        else:
-            return min_values[0]
+        sorted_values = sorted(values, key=lambda x: (len(self.domains[x]), -len(self.crossword.neighbors(x))))
+        return sorted_values[0]
 
     def backtrack(self, assignment):
         """
