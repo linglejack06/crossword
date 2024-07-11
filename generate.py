@@ -1,3 +1,4 @@
+import math
 import sys
 
 from crossword import *
@@ -217,7 +218,21 @@ class CrosswordCreator():
         degree. If there is a tie, any of the tied variables are acceptable
         return values.
         """
-        raise NotImplementedError
+        # find assigned variables to subtract from ( don't consider )
+        assigned_variables = filter(lambda var: assignment[var] is not None, assignment)
+
+        # find minimum amount of words left
+        values = {x: len(self.domains[x]) for x in self.crossword.variables - assigned_variables}
+        min_value = min(values)
+        min_values = filter(lambda var: values[var] == min_value, values)
+
+        # sort by highest degree of neighbors if multiple minimums
+        if len(min_values) > 1:
+            degree_values = {x: len(self.crossword.neighbors(x)) for x in min_values}
+            max_value = max(degree_values)
+            return max_value
+        else:
+            return min_values[0]
 
     def backtrack(self, assignment):
         """
